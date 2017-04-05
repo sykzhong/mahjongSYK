@@ -124,7 +124,7 @@ class Group(object):
             rank2 = str(self.cards[0].get_rank() + 2)
             return [Card(rank1 + self.cards[0].get_suit()), Card(rank2 + self.cards[0].get_suit())]
         elif self.type is 'guzhang':
-            if make is 'quetou' or self.cards[0].get_suit is 'z':
+            if make is 'quetou' or self.cards[0].get_suit() is 'z':
                 return [self.cards[0]]
             else:
                 ranks = [-2, -1, 0, 1, 2]
@@ -231,8 +231,10 @@ MIANZI_MAX = 4
 QUETOU_MAX = 1
 XIANGTINGSHU_MAX = 8
 finished_hand = []
+paishan_list = []
 
 def init_paishan():
+    global paishan_list
     paishan_list = CARD_LIST * 4
     random.shuffle(paishan_list)
     return paishan_list
@@ -373,8 +375,8 @@ def xiangtingshu_output(hand, raw_hand = True):
     hand = hand_processer(hand, raw_hand)
     xiangtingshu_lowest = 8
     best_cards = []
-    for card in hand:
-        used_card(card)
+    # for card in hand:             ##syk used_card在MahjongSimulator.py中被调用
+    #     used_card(card)
 
     card0 = ''
     for card in hand:
@@ -398,6 +400,89 @@ def xiangtingshu_output(hand, raw_hand = True):
         for i in list_youxiaopai:
             youxiaopai += str(i)
         print('打{}, 向听数{}, 有效牌{}, {}种{}张'.format(card, xiangtingshu, youxiaopai, len(list_youxiaopai), num_youxiaopai))
+
+def getCard_paishan():
+    # hand.append(mjsyk.Card(mjsyk.paishan_list[0]))
+    card = Card(paishan_list[0])
+    used_card(card)
+    del paishan_list[0]
+    return card
+
+def mahjong_check(hand, raw_hand = False):      #检测抽牌后是否胡牌，以及是否有暗刻
+    global list_xiangtingshu, xiangtingshu_lowest
+    hand = hand_processer(hand, raw_hand)
+
+    list_xiangtingshu = []
+    xiangtingshu_lowest = XIANGTINGSHU_MAX
+
+
+    hand_to_group(hand)
+
+    num_mianzi = 0
+    num_quetou = 0
+    num_cards = 0
+
+    for group in list_xiangtingshu[0][1].groups:
+        num_cards += len(group.cards)
+    max_num_mianzi = (int)(num_cards / 3)
+
+    for num, hand in list_xiangtingshu:  # 去重
+        for group in hand.groups:
+            type_of_group = group.get_type()
+            if type_of_group in MIANZI:
+                num_mianzi += 1
+            elif type_of_group in QUETOU and num_quetou < 1:
+                num_quetou += 1
+        if num_mianzi == max_num_mianzi and num_quetou == 1:
+            return True     #表示检测到胡牌
+        num_mianzi = 0
+        num_quetou = 0
+
+
+
+    return False
+
+def operation_check(hand, checkcard):
+    hand_processer(hand, raw_hand=False)
+    num_samecount = 0
+    for card in hand:
+        if is_samecard(card, checkcard):
+            num_samecount += 1
+        if num_samecount >= 1 and is_samecard(card, checkcard) == False:
+            break
+    return num_samecount
+
+def peng_handingroup(hand, checkcard):
+    numcount = 0
+    for i in range(0, len(hand)):
+        if is_samecard(checkcard, hand[i]):
+            del hand[i + 1]
+            del hand[i]
+            break
+    # for card in hand:
+    #     if is_samecard(card, checkcard):
+    #         hand.remove(card)
+    #         numcount += 1
+    #         if numcount == 2:
+    #             break
+    print('After peng: ')
+    xiangtingshu_output(hand, raw_hand=False)
+
+def gang_handingroup(hand, checkcard):
+    numcount = 0
+    hand_processer(hand, raw_hand=False)
+    for i in range(0, len(hand)):
+        if is_samecard(checkcard, hand[i]):
+            del hand[i + 2]
+            del hand[i + 1]
+            del hand[i]
+            break
+    # for card in hand:
+    #     if is_samecard(card, checkcard):
+    #         hand.remove(card)
+    #         numcount += 1
+    #         if numcount == 3:
+    #             break
 
 def main():
     """main func.
